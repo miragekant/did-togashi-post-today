@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import ActivityHeatmap from "./components/ActivityHeatmap.vue";
 import DayDrawer from "./components/DayDrawer.vue";
+import KofiButton from "./components/KofiButton.vue";
 import {
   createDemoDataset,
   dateKeyInTimeZone,
@@ -16,6 +17,9 @@ const dataset = ref<ActivityDataset>(createDemoDataset());
 const now = ref(new Date());
 const selectedDate = ref<string | null>(null);
 const selectedYear = ref(Number(dateKeyInTimeZone(now.value, dataset.value.timeZone).slice(0, 4)));
+type EmbedPreference = "allowed" | "declined";
+const EMBED_PREFERENCE_KEY = "dtpt-x-embed-preference";
+const embedPreference = ref<EmbedPreference | null>(null);
 let clock: number | undefined;
 
 const latestAge = computed(() => hoursSince(dataset.value.latestPostAt, now.value));
@@ -84,6 +88,15 @@ function closeDrawer() {
   window.history.replaceState({}, "", url);
 }
 
+function setEmbedPreference(preference: EmbedPreference) {
+  embedPreference.value = preference;
+  try {
+    window.localStorage.setItem(EMBED_PREFERENCE_KEY, preference);
+  } catch {
+    // The preference still applies for this visit when storage is unavailable.
+  }
+}
+
 async function loadDataset() {
   try {
     const response = await fetch(`${import.meta.env.BASE_URL}data/activity.json`, { cache: "no-store" });
@@ -104,6 +117,15 @@ async function loadDataset() {
 }
 
 onMounted(() => {
+  try {
+    const savedPreference = window.localStorage.getItem(EMBED_PREFERENCE_KEY);
+    if (savedPreference === "allowed" || savedPreference === "declined") {
+      embedPreference.value = savedPreference;
+    }
+  } catch {
+    // Keep the notice available when browser storage is unavailable.
+  }
+
   loadDataset();
   clock = window.setInterval(() => {
     now.value = new Date();
@@ -193,6 +215,51 @@ onBeforeUnmount(() => {
         </p>
       </div>
 
+      <section class="embed-notice" aria-labelledby="embed-notice-title">
+        <div class="embed-notice-art" aria-hidden="true">
+          <span>POST</span>
+          <i>↗</i>
+        </div>
+        <div class="embed-notice-copy">
+          <p class="eyebrow">A quick heads-up</p>
+          <h2 id="embed-notice-title">Official posts, straight from X.</h2>
+          <p>
+            Post text and images are displayed directly from X and aren’t copied into this site.
+            Loading embeds connects your browser to X, which may receive device and browsing information.
+          </p>
+        </div>
+        <div class="embed-notice-actions">
+          <template v-if="embedPreference === null">
+            <button class="notice-primary" type="button" @click="setEmbedPreference('allowed')">
+              Allow X embeds
+            </button>
+            <button class="notice-secondary" type="button" @click="setEmbedPreference('declined')">
+              Not now
+            </button>
+          </template>
+          <template v-else-if="embedPreference === 'allowed'">
+            <span class="preference-status"><i /> X embeds enabled</span>
+            <button class="notice-secondary" type="button" @click="setEmbedPreference('declined')">
+              Turn off
+            </button>
+          </template>
+          <template v-else>
+            <span class="preference-status is-off"><i /> X embeds are off</span>
+            <button class="notice-primary" type="button" @click="setEmbedPreference('allowed')">
+              Enable embeds
+            </button>
+          </template>
+          <a
+            class="notice-x-link"
+            :href="`https://x.com/${dataset.account.username}`"
+            target="_blank"
+            rel="noreferrer"
+          >
+            View profile on X ↗
+          </a>
+        </div>
+      </section>
+
       <section class="activity-section" aria-labelledby="activity-title">
         <div class="section-heading">
           <div>
@@ -255,15 +322,28 @@ onBeforeUnmount(() => {
       <section class="about-panel">
         <p class="eyebrow">About this project</p>
         <h2>Following Togashi, one post at a time.</h2>
-        <p>
-          Did Togashi Post Today? follows public posting activity without interpreting the author’s health, schedule, or intent. It is an independent fan project and is not affiliated with Yoshihiro Togashi, Shueisha, or X.
-        </p>
+        <div class="about-copy">
+          <p>
+            Did Togashi Post Today? follows public posting activity without interpreting the author’s health, schedule, or intent. It is an independent fan project and is not affiliated with Yoshihiro Togashi, Shueisha, or X.
+          </p>
+          <div class="project-links">
+            <a
+              class="repo-link"
+              href="https://github.com/miragekant/did-togashi-post-today"
+              target="_blank"
+              rel="noreferrer"
+            >
+              View the repo on GitHub ↗
+            </a>
+            <KofiButton />
+          </div>
+        </div>
       </section>
     </main>
 
     <footer>
       <span>Did Togashi Post Today? · Unofficial fan project</span>
-      <span>Calendar dates shown in JST</span>
+      <span>Calendar dates shown in JST · <a href="#embed-notice-title">X embed preferences</a></span>
     </footer>
 
     <DayDrawer
@@ -272,6 +352,7 @@ onBeforeUnmount(() => {
       :post-ids="selectedPostIds"
       :mode="dataset.mode"
       :username="dataset.account.username"
+      :embeds-enabled="embedPreference === 'allowed'"
       @close="closeDrawer"
     />
   </div>

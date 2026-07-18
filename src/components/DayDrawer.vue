@@ -8,6 +8,7 @@ const props = defineProps<{
   postIds: string[];
   mode: DataMode;
   username: string;
+  embedsEnabled: boolean;
 }>();
 
 const emit = defineEmits<{ close: [] }>();
@@ -93,13 +94,36 @@ watch(() => props.date, focusClose);
           </article>
         </template>
 
-        <XPostEmbed
-          v-else
-          v-for="postId in postIds"
-          :key="postId"
-          :post-id="postId"
-          :username="username"
-        />
+        <template v-else-if="embedsEnabled">
+          <p class="embed-source-note">Displayed directly from X</p>
+          <XPostEmbed
+            v-for="postId in postIds"
+            :key="postId"
+            :post-id="postId"
+            :username="username"
+          />
+        </template>
+
+        <template v-else>
+          <div class="embed-disabled-note">
+            <span aria-hidden="true">↗</span>
+            <div>
+              <strong>X embeds are turned off</strong>
+              <p>Open each official post on X, or enable embeds from the notice on the homepage.</p>
+            </div>
+          </div>
+          <a
+            v-for="(postId, index) in postIds"
+            :key="postId"
+            class="embed-fallback post-link-card"
+            :href="`https://x.com/${username}/status/${postId}`"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span>Post {{ index + 1 }}</span>
+            <strong>View the official post on X ↗</strong>
+          </a>
+        </template>
       </div>
     </aside>
   </div>
