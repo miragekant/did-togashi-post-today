@@ -31,6 +31,16 @@ const currentQuietStreak = computed(() => quietStreak(dataset.value, now.value))
 const selectedPostIds = computed(() =>
   selectedDate.value ? (dataset.value.days[selectedDate.value] ?? []) : [],
 );
+const latestActiveDate = computed(() =>
+  Object.entries(dataset.value.days)
+    .filter(([, postIds]) => postIds.length > 0)
+    .map(([date]) => date)
+    .sort()
+    .at(-1) ?? null,
+);
+const heroTargetDate = computed(() =>
+  postedToday.value ? todayKey.value : latestActiveDate.value,
+);
 const availableYears = computed(() => {
   const years = Object.keys(dataset.value.days).map((date) => Number(date.slice(0, 4)));
   const calendarYear = Number(dateKeyInTimeZone(now.value, dataset.value.timeZone).slice(0, 4));
@@ -46,11 +56,25 @@ function relativeTime(hours: number | null): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-function selectDay(cell: CalendarCell) {
-  selectedDate.value = cell.date;
+function shortDate(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function openDate(date: string) {
+  selectedDate.value = date;
+  selectedYear.value = Number(date.slice(0, 4));
   const url = new URL(window.location.href);
-  url.searchParams.set("date", cell.date);
+  url.searchParams.set("date", date);
   window.history.replaceState({}, "", url);
+}
+
+function selectDay(cell: CalendarCell) {
+  openDate(cell.date);
 }
 
 function closeDrawer() {
@@ -135,13 +159,23 @@ onBeforeUnmount(() => {
             </template>
             <template v-else-if="postedToday">
               Latest post was <strong>{{ relativeTime(latestAge) }}</strong>.
-              Tap today’s square to open the day’s posts.
+              Open today's posts to see the official X embeds.
             </template>
             <template v-else>
               No original posts recorded so far today. The latest was
               <strong>{{ relativeTime(latestAge) }}</strong>{{ isRecentlyActive ? " — still within the last 24 hours." : "." }}
             </template>
           </p>
+          <button
+            v-if="heroTargetDate"
+            class="hero-day-button"
+            type="button"
+            @click="openDate(heroTargetDate)"
+          >
+            <span>{{ postedToday ? "Open today's posts" : "Open latest active day" }}</span>
+            <small v-if="!postedToday">{{ shortDate(heroTargetDate) }}</small>
+            <i aria-hidden="true">&rarr;</i>
+          </button>
         </div>
 
         <div class="freshness-card">
@@ -155,7 +189,7 @@ onBeforeUnmount(() => {
       <div v-if="dataset.mode === 'demo'" class="demo-notice" role="status">
         <span>Test run!</span>
         <p>
-          This interface is running on illustrative data. Live X synchronization will be connected when API access is available.
+          This interface uses illustrative data until the first live synchronization completes.
         </p>
       </div>
 
