@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { appendFile, readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 const API_ORIGIN = "https://api.x.com";
@@ -203,11 +203,24 @@ export async function syncActivity({ bearerToken = process.env.X_BEARER_TOKEN } 
   console.log(
     `${isInitialBackfill ? "Backfill" : "Incremental sync"} complete: ${posts.length} posts fetched, ${Object.keys(updated.days).length} active days stored.`,
   );
+
+  return {
+    activityChanged: isInitialBackfill || posts.length > 0,
+    postsFetched: posts.length,
+  };
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
-  syncActivity().catch((error) => {
-    console.error(error instanceof Error ? error.message : error);
-    process.exitCode = 1;
-  });
+  syncActivity()
+    .then(async ({ activityChanged, postsFetched }) => {
+      if (!process.env.GITHUB_OUTPUT) return;
+      await appendFile(
+        process.env.GITHUB_OUTPUT,
+        `activity_changed=${activityChanged}\nposts_fetched=${postsFetched}\n`,
+      );
+    })
+    .catch((error) => {
+      console.error(error instanceof Error ? error.message : error);
+      process.exitCode = 1;
+    });
 }

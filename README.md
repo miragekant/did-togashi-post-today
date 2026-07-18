@@ -14,7 +14,7 @@ The site uses deterministic demo data until the first authenticated synchronizat
 - Demo post previews
 - Official X embed component ready for live numeric post IDs
 - Complete initial history import through X full-archive search
-- Incremental X synchronization every four hours
+- Incremental X synchronization every 15 minutes
 - GitHub Pages deployment on push or manual dispatch
 
 The demo is intentionally labeled throughout the interface. It must not be presented as real Togashi activity.
@@ -71,7 +71,8 @@ The synchronization pipeline:
 5. Excludes replies and reposts while retaining original and quote posts.
 6. Uses the newest stored ID as `since_id` for later incremental checks.
 7. Groups post IDs into JST calendar dates, commits the data file, runs tests, and deploys Pages.
-8. Runs at minute 17 every four hours and can also be started manually.
+8. Runs every 15 minutes (offset from the top of the hour to reduce scheduler delays) and can also be started manually.
+9. Deploys a fresh check timestamp each run, but commits activity data only when new posts are found.
 
 Never expose the bearer token through a `VITE_*` environment variable. Those variables are bundled into public frontend code.
 

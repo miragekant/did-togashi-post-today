@@ -2,7 +2,8 @@ name: Sync X activity
 
 on:
   schedule:
-    - cron: "17 */4 * * *"
+    # Offset from the top of the hour to reduce GitHub Actions scheduling delays.
+    - cron: "7-59/15 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -30,6 +31,7 @@ jobs:
           node-version: 22
 
       - name: Fetch public X activity
+        id: sync
         env:
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
         run: node scripts/sync-activity.mjs
@@ -53,11 +55,8 @@ jobs:
         run: pnpm build
 
       - name: Commit updated activity data
+        if: steps.sync.outputs.activity_changed == 'true'
         run: |
-          if git diff --quiet -- public/data/activity.json; then
-            echo "No activity data changes to commit."
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/data/activity.json
