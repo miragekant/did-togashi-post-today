@@ -2,7 +2,7 @@
 
 An unofficial, static-first activity tracker for Yoshihiro Togashi's public X account.
 
-The current version is an API-independent UI prototype. It uses deterministic demo data so the status card, annual heatmap, year navigation, shareable day links, responsive drawer, and empty states can be developed and reviewed before paid X API access is available.
+The site uses deterministic demo data until the first authenticated synchronization completes. The production workflow then publishes only post IDs and derived activity dates; official X embeds render post content in the browser.
 
 ## Current behavior
 
@@ -13,6 +13,8 @@ The current version is an API-independent UI prototype. It uses deterministic de
 - Responsive day-detail drawer
 - Demo post previews
 - Official X embed component ready for live numeric post IDs
+- Complete initial history import through X full-archive search
+- Incremental X synchronization every four hours
 - GitHub Pages deployment on push or manual dispatch
 
 The demo is intentionally labeled throughout the interface. It must not be presented as real Togashi activity.
@@ -58,18 +60,18 @@ The frontend reads `public/data/activity.json`. Live data will use the same cont
 
 Only post IDs and derived activity data should be published. Do not commit X API responses, copied post text, downloaded media, or credentials.
 
-## Connecting the X API later
+## X API synchronization
 
-When API access is available:
+The synchronization pipeline:
 
-1. Add a server-side sync script that reads `X_BEARER_TOKEN`.
-2. Resolve and pin the account's numeric user ID.
-3. Fetch `GET /2/users/{id}/tweets` using the newest stored ID as `since_id`.
-4. Exclude replies and reposts; retain original and quote posts.
-5. Group post IDs into JST calendar dates.
-6. Validate the generated JSON, run tests, and deploy the Pages artifact.
-7. Add a scheduled workflow, preferably every four hours at an off-peak minute.
-8. Add deletion/unavailability reconciliation before public launch.
+1. Reads `X_BEARER_TOKEN` only inside GitHub Actions.
+2. Resolves and pins the account's numeric user ID.
+3. Uses full-archive search for the first import, from the account creation timestamp through the present.
+4. Falls back to the user timeline if full-archive search is unavailable.
+5. Excludes replies and reposts while retaining original and quote posts.
+6. Uses the newest stored ID as `since_id` for later incremental checks.
+7. Groups post IDs into JST calendar dates, commits the data file, runs tests, and deploys Pages.
+8. Runs at minute 17 every four hours and can also be started manually.
 
 Never expose the bearer token through a `VITE_*` environment variable. Those variables are bundled into public frontend code.
 
@@ -77,4 +79,4 @@ Never expose the bearer token through a `VITE_*` environment variable. Those var
 
 The included workflow builds and deploys the `dist` directory through GitHub's Pages artifact actions. In the repository settings, select **GitHub Actions** as the Pages source.
 
-Scheduled data synchronization is deliberately not enabled while the project has no X API credentials.
+The `Sync X activity` workflow requires an Actions secret named `X_BEARER_TOKEN`. The first run performs the historical backfill; later runs fetch only posts newer than the stored `latestPostId`.
