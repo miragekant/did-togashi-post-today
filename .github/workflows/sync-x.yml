@@ -3,7 +3,7 @@ name: Sync X activity
 on:
   schedule:
     # Offset from the top of the hour to reduce GitHub Actions scheduling delays.
-    - cron: "7-59/15 * * * *"
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
 
 permissions:
