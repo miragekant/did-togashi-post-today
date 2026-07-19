@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -29,6 +29,11 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+
+      - name: Fetch latest public X activity
+        env:
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+        run: node scripts/sync-activity.mjs
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
