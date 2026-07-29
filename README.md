@@ -2,6 +2,8 @@
 
 An unofficial, static-first activity tracker for Yoshihiro Togashi's public X account.
 
+**Live site:** [Did Yoshihiro Togashi Post Today?](https://miragekant.github.io/did-togashi-post-today/)
+
 The site uses deterministic demo data until the first authenticated synchronization completes. The production workflow then publishes only post IDs and derived activity dates; official X embeds render post content in the browser.
 
 ## Current behavior
