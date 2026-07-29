@@ -952,6 +952,17 @@ body {
   text-shadow: 3px 3px 0 rgba(37, 37, 37, 0.32);
 }
 
+.status-question {
+  display: block;
+  margin-bottom: 7px;
+  font-family: var(--note-font);
+  font-size: 0.2em;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
 .status-orb {
   width: 44px;
   height: 44px;

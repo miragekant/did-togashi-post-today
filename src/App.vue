@@ -19,6 +19,7 @@ const selectedDate = ref<string | null>(null);
 const selectedYear = ref(Number(dateKeyInTimeZone(now.value, dataset.value.timeZone).slice(0, 4)));
 type EmbedPreference = "allowed" | "declined";
 const EMBED_PREFERENCE_KEY = "dtpt-x-embed-preference";
+const baseUrl = import.meta.env.BASE_URL;
 const embedPreference = ref<EmbedPreference | null>(null);
 let clock: number | undefined;
 
@@ -52,6 +53,15 @@ const availableYears = computed(() => {
   const max = years.length ? Math.max(calendarYear, ...years) : calendarYear;
   return Array.from({ length: max - min + 1 }, (_, index) => max - index);
 });
+const archiveYears = computed(() =>
+  Array.from(
+    new Set(
+      Object.entries(dataset.value.days)
+        .filter(([, postIds]) => postIds.length > 0)
+        .map(([date]) => Number(date.slice(0, 4))),
+    ),
+  ).sort((a, b) => b - a),
+);
 
 function relativeTime(hours: number | null): string {
   if (hours === null) return "Unknown";
@@ -173,7 +183,10 @@ onBeforeUnmount(() => {
           <p class="eyebrow">Today in Japan</p>
           <div class="status-heading">
             <span class="status-orb" aria-hidden="true"><i /></span>
-            <h1>{{ isStale ? "Update delayed!" : postedToday ? "Yes — he posted today!" : "Not today (yet)." }}</h1>
+            <h1>
+              <span class="status-question">Did Yoshihiro Togashi post today?</span>
+              <span>{{ isStale ? "Update delayed!" : postedToday ? "Yes — he posted today!" : "Not today (yet)." }}</span>
+            </h1>
           </div>
           <p class="hero-description">
             <template v-if="isStale">
@@ -326,6 +339,18 @@ onBeforeUnmount(() => {
           <p>
             Did Togashi Post Today? follows public posting activity without interpreting the author’s health, schedule, or intent. It is an independent fan project and is not affiliated with Yoshihiro Togashi, Shueisha, or X.
           </p>
+          <nav class="archive-links" aria-label="Yoshihiro Togashi posting activity archives">
+            <strong>Browse activity by year</strong>
+            <div>
+              <a
+                v-for="year in archiveYears"
+                :key="year"
+                :href="`${baseUrl}activity/${year}/`"
+              >
+                {{ year }}
+              </a>
+            </div>
+          </nav>
           <div class="project-links">
             <a
               class="repo-link"
